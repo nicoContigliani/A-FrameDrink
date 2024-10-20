@@ -21,16 +21,36 @@
     /* Estilos para el contenedor del lector de código de barras */
     #barcode-scanner {
       position: absolute;
-      top: 50%; /* Ajusta esto para alinearlo con el cuadrado */
+      top: 70%; /* Ajusta esto para alinearlo con el cuadrado */
       left: 50%;
       transform: translate(-50%, -100%);
       width: 50%; /* Ancho del lector de códigos de barras */
-      height: 30%; /* Altura del lector de códigos de barras */
+      height: 20%; /* Altura del lector de códigos de barras */
       border: 2px solid #000;
       background: rgba(255, 255, 255, 0.8);
       display: flex;
       justify-content: center;
       align-items: center;
+      flex-direction: column; /* Cambiado para permitir que haya un input */
+    }
+
+    /* Estilo para la guía de lectura */
+    .guide {
+      position: absolute;
+      top: 35%; /* Ajusta la posición de la guía */
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60%;
+      height: 10%;
+      border: 2px dashed red;
+      pointer-events: none; /* Permite interactuar con el input */
+    }
+
+    /* Estilo del input */
+    #barcode-input {
+      margin-top: 10px;
+      padding: 5px;
+      width: 80%; /* Ancho del input */
     }
   </style>
 </head>
@@ -45,7 +65,10 @@
   </a-scene>
 
   <!-- Contenedor para el lector de códigos de barras -->
-  <div id="barcode-scanner"></div>
+  <div id="barcode-scanner">
+    <div class="guide"></div> <!-- Guía para el código de barras -->
+    <input type="text" id="barcode-input" placeholder="Ingresa el código de barras aquí">
+  </div>
 
   <script>
     // Ajustar el canvas de A-Frame para mostrar la cámara en la mitad de la pantalla
@@ -62,7 +85,17 @@
         }
       },
       decoder: {
-        readers: ["code_128_reader"] // Tipo de código de barras a leer
+        readers: [
+          "code_128_reader",
+          "ean_reader",
+          "upc_reader",
+          "code_39_reader",
+          "i2of5_reader",
+          "code_39_vin_reader",
+          "codabar_reader",
+          "code_93_reader",
+          "qr_reader" // Incluye soporte para QR
+        ]
       }
     }, (err) => {
       if (err) {
@@ -74,8 +107,12 @@
       // Leer el código de barras
       Quagga.onDetected((data) => {
         console.log('Código de barras detectado:', data.codeResult.code);
+        
+        // Lanza una alerta con el código detectado
         alert('Código de barras detectado: ' + data.codeResult.code);
-        // Puedes agregar aquí lógica adicional para manejar el código detectado
+
+        // Coloca el código detectado en el input
+        document.getElementById('barcode-input').value = data.codeResult.code;
       });
     });
   </script>
