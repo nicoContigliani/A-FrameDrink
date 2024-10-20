@@ -3,85 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>A-Frame AR Camera con Lector de Códigos de Barras</title>
+  <title>A-Frame AR Camera con Lector de Códigos de Barras y QR</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://rawgit.com/jeromeetienne/AR.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
   <script src="https://unpkg.com/@ericblade/quagga2@0.12.1/dist/quagga.min.js"></script>
   <style>
-    /* Ajuste de la escena a la mitad de la pantalla */
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
     .a-canvas {
       position: absolute;
-      top: 25%;
-      left: 25%;
-      width: 50%;
+      top: 0;
+      left: 0;
+      width: 100%;
       height: 50%;
       border: 2px solid #000;
     }
-
-    /* Estilos para el contenedor del lector de código de barras */
     #barcode-scanner {
       position: absolute;
-      top: 70%; /* Ajusta esto para alinearlo con el cuadrado */
-      left: 50%;
-      transform: translate(-50%, -100%);
-      width: 50%; /* Ancho del lector de códigos de barras */
-      height: 20%; /* Altura del lector de códigos de barras */
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 40%;
       border: 2px solid #000;
       background: rgba(255, 255, 255, 0.8);
       display: flex;
       justify-content: center;
       align-items: center;
-      flex-direction: column; /* Cambiado para permitir que haya un input */
+      flex-direction: column;
     }
-
-    /* Estilo para la guía de lectura */
     .guide {
       position: absolute;
-      top: 35%; /* Ajusta la posición de la guía */
+      top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 60%;
-      height: 10%;
+      width: 80%;
+      height: 20%;
       border: 2px dashed red;
-      pointer-events: none; /* Permite interactuar con el input */
+      pointer-events: none;
     }
-
-    /* Estilo del input */
     #barcode-input {
-      margin-top: 10px;
-      padding: 5px;
-      width: 80%; /* Ancho del input */
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      padding: 10px;
+      font-size: 16px;
+    }
+    @media (max-width: 768px) {
+      .a-canvas {
+        height: 40%;
+      }
+      #barcode-scanner {
+        top: 40%;
+        height: 50%;
+      }
+      .guide {
+        width: 90%;
+      }
+      #barcode-input {
+        width: 90%;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Crear una escena de A-Frame con AR.js -->
   <a-scene embedded arjs="sourceType: webcam;">
-    <!-- Esta caja es solo un ejemplo visual de AR -->
     <a-box position="0 0.5 -3" rotation="0 45 45" color="#4CC3D9"></a-box>
-
-    <!-- Cámara AR.js -->
     <a-marker-camera preset="hiro"></a-marker-camera>
   </a-scene>
 
-  <!-- Contenedor para el lector de códigos de barras -->
   <div id="barcode-scanner">
-    <div class="guide"></div> <!-- Guía para el código de barras -->
-    <input type="text" id="barcode-input" placeholder="Ingresa el código de barras aquí">
+    <div class="guide"></div>
+    <input type="text" id="barcode-input" placeholder="Código detectado aparecerá aquí" readonly>
   </div>
 
   <script>
-    // Ajustar el canvas de A-Frame para mostrar la cámara en la mitad de la pantalla
     document.querySelector('canvas').classList.add('a-canvas');
 
-    // Inicializar QuaggaJS
     Quagga.init({
       inputStream: {
         name: "Live",
         type: "LiveStream",
-        target: document.querySelector('#barcode-scanner'), // El contenedor donde se muestra el stream
+        target: document.querySelector('#barcode-scanner'),
         constraints: {
-          facingMode: "environment" // Usa la cámara trasera
+          facingMode: "environment"
         }
       },
       decoder: {
@@ -94,26 +103,30 @@
           "code_39_vin_reader",
           "codabar_reader",
           "code_93_reader",
-          "qr_reader" // Incluye soporte para QR
+          "qr_code_reader"
         ]
       }
-    }, (err) => {
+    }, function(err) {
       if (err) {
         console.error(err);
         return;
       }
-      Quagga.start(); // Iniciar el escáner
+      Quagga.start();
+    });
 
-      // Leer el código de barras
-      Quagga.onDetected((data) => {
-        console.log('Código de barras detectado:', data.codeResult.code);
-        
-        // Lanza una alerta con el código detectado
-        alert('Código de barras detectado: ' + data.codeResult.code);
-
-        // Coloca el código detectado en el input
-        document.getElementById('barcode-input').value = data.codeResult.code;
-      });
+    Quagga.onDetected(function(result) {
+      var code = result.codeResult.code;
+      console.log('Código detectado:', code);
+      document.getElementById('barcode-input').value = code;
+      
+      // Opcional: Vibrar el dispositivo si es compatible
+      if ('vibrate' in navigator) {
+        navigator.vibrate(200);
+      }
+      
+      // Opcional: Reproducir un sonido de éxito
+      var audio = new Audio('data:audio/wav;base64,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');
+      audio.play();
     });
   </script>
 </body>
