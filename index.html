@@ -1,135 +1,83 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mostrar Cámara en un Círculo</title>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://unpkg.com/aframe-webcam-texture@1.0.1/dist/aframe-webcam-texture.min.js"></script>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: Arial, sans-serif;
-            background-color: #000;
-            overflow: hidden;
-        }
-        .header {
-            position: absolute;
-            top: 0;
-            width: 100%;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 15px;
-            font-size: 24px;
-            z-index: 10;
-        }
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.6);
-            padding: 10px;
-            border-radius: 10px;
-            z-index: 10;
-        }
-        .controls button {
-            padding: 10px;
-            font-size: 16px;
-            border: none;
-            background-color: #444;
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-            margin: 0 5px;
-        }
-        .controls button:hover {
-            background-color: #555;
-        }
-        #debugInfo {
-            position: absolute;
-            top: 60px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 10;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A-Frame AR Camera con Lector de Códigos de Barras</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://rawgit.com/jeromeetienne/AR.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
+  <script src="https://unpkg.com/@ericblade/quagga2@0.12.1/dist/quagga.min.js"></script>
+  <style>
+    /* Ajuste de la escena a la mitad de la pantalla */
+    .a-canvas {
+      position: absolute;
+      top: 25%;
+      left: 25%;
+      width: 50%;
+      height: 50%;
+      border: 2px solid #000;
+    }
+
+    /* Estilos para el contenedor del lector de código de barras */
+    #barcode-scanner {
+      position: absolute;
+      top: 50%; /* Ajusta esto para alinearlo con el cuadrado */
+      left: 50%;
+      transform: translate(-50%, -100%);
+      width: 50%; /* Ancho del lector de códigos de barras */
+      height: 30%; /* Altura del lector de códigos de barras */
+      border: 2px solid #000;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
 </head>
 <body>
+  <!-- Crear una escena de A-Frame con AR.js -->
+  <a-scene embedded arjs="sourceType: webcam;">
+    <!-- Esta caja es solo un ejemplo visual de AR -->
+    <a-box position="0 0.5 -3" rotation="0 45 45" color="#4CC3D9"></a-box>
 
-<div class="header">Cámara en un Círculo</div>
+    <!-- Cámara AR.js -->
+    <a-marker-camera preset="hiro"></a-marker-camera>
+  </a-scene>
 
-<a-scene>
-    <!-- Cambiar el a-sky por a-circle para mostrar la cámara en un círculo -->
-    <a-circle id="camera-circle" webcam-texture="deviceId: null; width: 1280; height: 720; autoplay: false;" radius="4" position="0 2 -5"></a-circle>
+  <!-- Contenedor para el lector de códigos de barras -->
+  <div id="barcode-scanner"></div>
 
-    <!-- Suelo plano -->
-    <a-plane color="#1500ffcd" height="100" width="100" rotation="-90 0 0" position="0 -2 0"></a-plane>
+  <script>
+    // Ajustar el canvas de A-Frame para mostrar la cámara en la mitad de la pantalla
+    document.querySelector('canvas').classList.add('a-canvas');
 
-    <!-- Cámara con cursor -->
-    <a-entity camera look-controls>
-        <a-cursor color="yellow"></a-cursor>
-    </a-entity>
-</a-scene>
-
-<div class="controls">
-    <button id="startCameraBtn" onclick="startCamera()">Iniciar Cámara</button>
-    <button id="stopCameraBtn" onclick="stopCamera()" style="display: none;">Detener Cámara</button>
-</div>
-
-<div id="debugInfo"></div>
-
-<script>
-    let cameraCircle;
-    let debugInfo = document.getElementById('debugInfo');
-    let startCameraBtn = document.getElementById('startCameraBtn');
-    let stopCameraBtn = document.getElementById('stopCameraBtn');
-
-    function startCamera() {
-        cameraCircle = document.querySelector('#camera-circle');
-
-        // Solicitar permiso explícito para la cámara
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function(stream) {
-                cameraCircle.components['webcam-texture'].play();
-                startCameraBtn.style.display = 'none';
-                stopCameraBtn.style.display = 'inline-block';
-                debugInfo.textContent = 'Cámara iniciada';
-            })
-            .catch(function(err) {
-                debugInfo.textContent = 'Error al acceder a la cámara: ' + err.name;
-            });
-    }
-
-    function stopCamera() {
-        if (cameraCircle && cameraCircle.components['webcam-texture']) {
-            cameraCircle.components['webcam-texture'].pause();
-            startCameraBtn.style.display = 'inline-block';
-            stopCameraBtn.style.display = 'none';
-            debugInfo.textContent = 'Cámara detenida';
-        } else {
-            debugInfo.textContent = 'No se pudo detener la cámara. No está activa.';
+    // Inicializar QuaggaJS
+    Quagga.init({
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: document.querySelector('#barcode-scanner'), // El contenedor donde se muestra el stream
+        constraints: {
+          facingMode: "environment" // Usa la cámara trasera
         }
-    }
+      },
+      decoder: {
+        readers: ["code_128_reader"] // Tipo de código de barras a leer
+      }
+    }, (err) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      Quagga.start(); // Iniciar el escáner
 
-    // Escuchar eventos de la cámara
-    document.querySelector('a-scene').addEventListener('loaded', function () {
-        cameraCircle = document.querySelector('#camera-circle');
-        cameraCircle.addEventListener('webcam-texture-loaded', function () {
-            debugInfo.textContent = 'Textura de cámara cargada';
-        });
-        cameraCircle.addEventListener('webcam-texture-error', function (err) {
-            debugInfo.textContent = 'Error en la textura de cámara: ' + err.detail.message;
-        });
+      // Leer el código de barras
+      Quagga.onDetected((data) => {
+        console.log('Código de barras detectado:', data.codeResult.code);
+        alert('Código de barras detectado: ' + data.codeResult.code);
+        // Puedes agregar aquí lógica adicional para manejar el código detectado
+      });
     });
-</script>
-
+  </script>
 </body>
 </html>
