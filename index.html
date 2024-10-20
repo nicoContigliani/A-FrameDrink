@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Panorama 360° con A-Frame y Cámara en Vivo</title>
+    <title>Mostrar Cámara en un Círculo</title>
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-webcam-texture@1.0.1/dist/aframe-webcam-texture.min.js"></script>
     <style>
         body, html {
             margin: 0;
@@ -43,23 +44,34 @@
             color: white;
             cursor: pointer;
             border-radius: 5px;
+            margin: 0 5px;
         }
         .controls button:hover {
             background-color: #555;
+        }
+        #debugInfo {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 10;
         }
     </style>
 </head>
 <body>
 
-<div class="header">Panorama 360° Nicolás Contigliani con Cámara en Vivo</div>
+<div class="header">Cámara en un Círculo</div>
 
 <a-scene>
-    <a-sky id="camera-sky" rotation="0 -90 0"></a-sky>
-    
-    <!-- Suelo plano -->
-    <a-cylinder color="#1500ffcd" radius="10" height="0.2" position="0 -20 0"></a-cylinder>
+    <!-- Cambiar el a-sky por a-circle para mostrar la cámara en un círculo -->
+    <a-circle id="camera-circle" webcam-texture="deviceId: null; width: 1280; height: 720; autoplay: false;" radius="4" position="0 2 -5"></a-circle>
 
-    <a-torus color="#33fcffa4" arc="490" radius="5" radius-tubular="0.08" position="0 0 -10" material="opacity: 0.2"></a-torus>
+    <!-- Suelo plano -->
+    <a-plane color="#1500ffcd" height="100" width="100" rotation="-90 0 0" position="0 -2 0"></a-plane>
 
     <!-- Cámara con cursor -->
     <a-entity camera look-controls>
@@ -69,67 +81,54 @@
 
 <div class="controls">
     <button id="startCameraBtn" onclick="startCamera()">Iniciar Cámara</button>
+    <button id="stopCameraBtn" onclick="stopCamera()" style="display: none;">Detener Cámara</button>
 </div>
 
+<div id="debugInfo"></div>
+
 <script>
-    let video;
-    let canvas;
-    let context;
-    let cameraSky;
-    let texture;
+    let cameraCircle;
+    let debugInfo = document.getElementById('debugInfo');
+    let startCameraBtn = document.getElementById('startCameraBtn');
+    let stopCameraBtn = document.getElementById('stopCameraBtn');
 
     function startCamera() {
-        video = document.createElement('video');
-        video.setAttribute('autoplay', true);
-        video.setAttribute('playsinline', true);
-        video.setAttribute('muted', true);
+        cameraCircle = document.querySelector('#camera-circle');
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-            .then(stream => {
-                video.srcObject = stream;
-                video.play();
-
-                canvas = document.createElement('canvas');
-                context = canvas.getContext('2d');
-
-                // Crear textura dinámica
-                texture = new THREE.Texture(canvas);
-                texture.minFilter = THREE.LinearFilter;
-                texture.magFilter = THREE.LinearFilter;
-
-                // Asignar textura al a-sky
-                cameraSky = document.querySelector('#camera-sky');
-                cameraSky.setAttribute('material', 'src', '');
-                cameraSky.getObject3D('mesh').material.map = texture;
-
-                // Iniciar el bucle de renderizado
-                requestAnimationFrame(updateTexture);
-
-                // Ocultar el botón
-                document.getElementById('startCameraBtn').style.display = 'none';
+        // Solicitar permiso explícito para la cámara
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                cameraCircle.components['webcam-texture'].play();
+                startCameraBtn.style.display = 'none';
+                stopCameraBtn.style.display = 'inline-block';
+                debugInfo.textContent = 'Cámara iniciada';
             })
-            .catch(error => {
-                console.error('Error al acceder a la cámara: ', error);
-                alert('No se pudo acceder a la cámara');
+            .catch(function(err) {
+                debugInfo.textContent = 'Error al acceder a la cámara: ' + err.name;
             });
     }
 
-    function updateTexture() {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            // Ajustar el tamaño del canvas al video
-            if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-            }
-
-            // Dibujar el video en el canvas
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // Actualizar la textura
-            texture.needsUpdate = true;
+    function stopCamera() {
+        if (cameraCircle && cameraCircle.components['webcam-texture']) {
+            cameraCircle.components['webcam-texture'].pause();
+            startCameraBtn.style.display = 'inline-block';
+            stopCameraBtn.style.display = 'none';
+            debugInfo.textContent = 'Cámara detenida';
+        } else {
+            debugInfo.textContent = 'No se pudo detener la cámara. No está activa.';
         }
-        requestAnimationFrame(updateTexture);
     }
+
+    // Escuchar eventos de la cámara
+    document.querySelector('a-scene').addEventListener('loaded', function () {
+        cameraCircle = document.querySelector('#camera-circle');
+        cameraCircle.addEventListener('webcam-texture-loaded', function () {
+            debugInfo.textContent = 'Textura de cámara cargada';
+        });
+        cameraCircle.addEventListener('webcam-texture-error', function (err) {
+            debugInfo.textContent = 'Error en la textura de cámara: ' + err.detail.message;
+        });
+    });
 </script>
 
 </body>
